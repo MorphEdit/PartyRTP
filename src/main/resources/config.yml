@@ -58,7 +58,7 @@ messages:
   prefix: "&d[PartyRTP]&f "
 
   help:
-    - "&fCommands:"
+    - "&fPlayer Commands:"
     - "&d/prtp create &7- Create a party (you are leader)"
     - "&d/prtp invite <player> &7- Invite player"
     - "&d/prtp accept <leader> &7- Accept invite"
@@ -66,6 +66,12 @@ messages:
     - "&d/prtp leave &7- Leave party"
     - "&d/prtp disband &7- Disband party (leader)"
     - "&d/prtp go &7- RTP leader then pull members"
+    - "&fAdmin Commands:"
+    - "&d/prtp reload &7- Reload configuration"
+    - "&d/prtp forcedisband <player> &7- Force disband party"
+    - "&d/prtp info <player> &7- View party info"
+    - "&d/prtp listall &7- List all parties"
+    - "&d/prtp debug <on|off> &7- Toggle debug mode"
 
   errors:
     playersOnly: "&cPlayers only."
@@ -100,3 +106,15 @@ messages:
     goIssued: "&aRTP leader... waiting for teleport. (&7provider: %provider%&a)"
     pulled: "&aMembers pulled to your location."
     pulledMember: "&aParty RTP: teleported to leader."
+
+  admin:
+    reloadSuccess: "&aConfiguration reloaded successfully!"
+    reloadFailed: "&cFailed to reload config: %error%"
+    forceDisbandUsage: "&cUsage: /prtp forcedisband <player>"
+    forceDisbandSuccess: "&aForce disbanded party of %player%"
+    notPartyLeader: "&c%player% is not a party leader."
+    partyDisbandedByAdmin: "&cYour party was disbanded by an administrator."
+    infoUsage: "&cUsage: /prtp info <player>"
+    noParties: "&7No active parties."
+    debugEnabled: "&aDebug mode enabled."
+    debugDisabled: "&cDebug mode disabled."

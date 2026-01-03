@@ -1,5 +1,6 @@
 package net.morphedit.partyrtp;
 
+import net.morphedit.partyrtp.admin.AdminCommandHandler;
 import net.morphedit.partyrtp.party.PartyService;
 import net.morphedit.partyrtp.rtp.RTPService;
 import net.morphedit.partyrtp.teleport.LeaderTeleportListener;
@@ -14,6 +15,7 @@ public final class PartyRTPPlugin extends JavaPlugin implements Listener {
 
     private PartyService partyService;
     private RTPService rtpService;
+    private AdminCommandHandler adminHandler;
 
     @Override
     public void onEnable() {
@@ -21,6 +23,7 @@ public final class PartyRTPPlugin extends JavaPlugin implements Listener {
 
         this.partyService = new PartyService(this);
         this.rtpService = new RTPService(this, partyService);
+        this.adminHandler = new AdminCommandHandler(this, partyService);
 
         getServer().getPluginManager().registerEvents(
                 new LeaderTeleportListener(this, partyService, rtpService),
@@ -30,7 +33,7 @@ public final class PartyRTPPlugin extends JavaPlugin implements Listener {
         // Register self for PlayerQuitEvent
         getServer().getPluginManager().registerEvents(this, this);
 
-        getLogger().info("PartyRTP enabled.");
+        getLogger().info("PartyRTP v0.9.0 enabled.");
     }
 
     @Override
@@ -55,6 +58,16 @@ public final class PartyRTPPlugin extends JavaPlugin implements Listener {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!command.getName().equalsIgnoreCase("prtp")) return false;
 
+        // Admin commands (work for console and players with permission)
+        if (args.length > 0) {
+            String sub = args[0].toLowerCase();
+            if (sub.equals("reload") || sub.equals("forcedisband") ||
+                    sub.equals("info") || sub.equals("listall") || sub.equals("debug")) {
+                return adminHandler.handleCommand(sender, args);
+            }
+        }
+
+        // Player commands
         if (sender instanceof org.bukkit.entity.Player p) {
             if (args.length > 0 && args[0].equalsIgnoreCase("go")) {
                 rtpService.handleGo(p);
@@ -63,5 +76,9 @@ public final class PartyRTPPlugin extends JavaPlugin implements Listener {
         }
 
         return partyService.handleCommand(sender, args);
+    }
+
+    public AdminCommandHandler getAdminHandler() {
+        return adminHandler;
     }
 }

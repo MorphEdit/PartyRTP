@@ -278,6 +278,44 @@ public class PartyService {
         }
     }
 
+    // ----- Admin Methods -----
+
+    /**
+     * Force disband a party by leader UUID
+     * @return true if party was disbanded, false if player is not a leader
+     */
+    public boolean forceDisband(UUID leaderUUID) {
+        if (!parties.containsKey(leaderUUID)) {
+            return false;
+        }
+
+        // Notify all members
+        for (UUID m : parties.get(leaderUUID)) {
+            Player mp = Bukkit.getPlayer(m);
+            if (mp != null) {
+                Msg.sendPrefixed(plugin, mp,
+                        Msg.get(plugin, "messages.admin.partyDisbandedByAdmin",
+                                "&cYour party was disbanded by an administrator."));
+            }
+        }
+
+        parties.remove(leaderUUID);
+        clearGo(leaderUUID);
+        clearPendingGo(leaderUUID);
+        goCooldownUntil.remove(leaderUUID);
+
+        return true;
+    }
+
+    /**
+     * Get all parties (for admin listall command)
+     */
+    public Map<UUID, Set<UUID>> getAllParties() {
+        return new HashMap<>(parties);
+    }
+
+    // ----- Existing Methods -----
+
     public boolean inAnyParty(UUID player) {
         if (parties.containsKey(player)) return true; // leader
         return getLeaderOf(player) != null;
