@@ -1,0 +1,99 @@
+rtp:
+  provider: COMMAND
+
+  command:
+    # ไม่ต้องใส่ /
+    # ตัวอย่าง BetterRTP: "rtp player %player%"
+    # ตัวอย่าง CMI: "cmi rtp %player%"
+    execute: "rtp player %player%"
+
+    # placeholder ที่รองรับ:
+    # %player% %uuid% %world% %x% %y% %z%
+
+party:
+  maxSize: 6
+  requireNear: true
+  nearRadius: 8
+  membersMustBeOnline: true
+
+go:
+  cooldownSeconds: 300
+  leaderTeleportTimeoutSeconds: 15
+  pullMemberDelayTicks: 2
+  successMinDistance: 64
+
+worlds:
+  # ถ้า enabled=true จะเปิดใช้ rule ด้านล่าง
+  enabled: true
+
+  # whitelist/blacklist เลือกอย่างใดอย่างหนึ่ง
+  mode: BLACKLIST  # WHITELIST หรือ BLACKLIST
+
+  # รายชื่อโลก (world name) เช่น world, world_nether, world_the_end
+  list:
+    - world_nether
+    - world_the_end
+
+  # ถ้า true: ตอนเช็คสมาชิกต้องอยู่โลกเดียวกับหัวหน้า (ของเดิมมีแล้ว)
+  requireSameWorldAsLeader: true
+
+limits:
+  # ถ้า true: ใช้ permission tiers ด้านล่าง
+  enabled: true
+
+  # ถ้า player มี permission นี้ จะ override maxSize/cooldown
+  # เรียงจากสูง -> ต่ำ (ระบบจะใช้ตัวแรกที่ match)
+  tiers:
+    - permission: "partyrtp.tier.vip"
+      maxSize: 10
+      cooldownSeconds: 120
+      nearRadius: 16
+
+    - permission: "partyrtp.tier.default"
+      maxSize: 6
+      cooldownSeconds: 300
+      nearRadius: 8
+
+messages:
+  prefix: "&d[PartyRTP]&f "
+
+  help:
+    - "&fCommands:"
+    - "&d/prtp create &7- Create a party (you are leader)"
+    - "&d/prtp invite <player> &7- Invite player"
+    - "&d/prtp accept <leader> &7- Accept invite"
+    - "&d/prtp list &7- Show party members"
+    - "&d/prtp leave &7- Leave party"
+    - "&d/prtp disband &7- Disband party (leader)"
+    - "&d/prtp go &7- RTP leader then pull members"
+
+  errors:
+    playersOnly: "&cPlayers only."
+    noPermission: "&cYou don't have permission."
+    notLeader: "&cYou must be a party leader."
+    notInParty: "&cYou are not in a party."
+    alreadyInParty: "&cYou are already in a party."
+    leaderDisbandHint: "&cYou are the leader. Use &f/prtp disband&c."
+    inviteUsage: "&cUsage: /prtp invite <player>"
+    acceptUsage: "&cUsage: /prtp accept <leader>"
+    playerNotFound: "&cPlayer not found / offline."
+    noInvite: "&cNo valid invite from that leader."
+    partyFull: "&cParty is full."
+    cooldown: "&cCooldown: &f%seconds%s"
+    memberFar: "&cAll members must be within &f%radius%&c blocks. Far: &f%player%"
+    worldMismatch: "&cAll members must be in the same world as leader."
+    rtpConfigBad: "&cRTP request failed. Check config.yml (rtp provider/command)."
+    rtpTimeout: "&cRTP failed or timed out."
+
+  info:
+    partyCreated: "&aParty created. You are the leader."
+    partyDisbanded: "&aParty disbanded."
+    invited: "&aInvited &f%player%"
+    gotInvite: "&fYou were invited by &d%leader%&f. Type &a/prtp accept %leader%"
+    joined: "&aJoined party of &d%leader%"
+    memberJoined: "&a%player% joined your party."
+    left: "&aYou left the party."
+    memberLeft: "&c%player% left the party."
+    goIssued: "&aRTP leader... waiting for teleport. (&7provider: %provider%&a)"
+    pulled: "&aMembers pulled to your location."
+    pulledMember: "&aParty RTP: teleported to leader."
