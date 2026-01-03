@@ -14,12 +14,20 @@ public class RTPService {
 
     private final JavaPlugin plugin;
     private final PartyService party;
-    private final RTPProvider provider;
+    private RTPProvider provider; // ไม่ใช้ final เพื่อให้ reload ได้
 
     public RTPService(JavaPlugin plugin, PartyService party) {
         this.plugin = plugin;
         this.party = party;
         this.provider = RTPProviderFactory.create(plugin);
+    }
+
+    /**
+     * Reload RTP provider (called after config reload)
+     */
+    public void reloadProvider() {
+        this.provider = RTPProviderFactory.create(plugin);
+        plugin.getLogger().info("RTP provider reloaded: " + provider.getName());
     }
 
     public void handleGo(Player leader) {

@@ -36,6 +36,16 @@ public final class PartyRTPPlugin extends JavaPlugin implements Listener {
         getLogger().info("PartyRTP v0.9.0 enabled.");
     }
 
+    /**
+     * Reload all components after config reload
+     */
+    public void reloadAll() {
+        if (rtpService != null) {
+            rtpService.reloadProvider();
+        }
+        getLogger().info("All components reloaded.");
+    }
+
     @Override
     public void onDisable() {
         if (partyService != null) {

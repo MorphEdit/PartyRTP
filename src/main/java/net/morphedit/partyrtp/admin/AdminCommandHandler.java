@@ -45,8 +45,14 @@ public class AdminCommandHandler {
         }
 
         try {
-            plugin.reloadConfig();
             partyService.saveParties(); // Save before reload
+            plugin.reloadConfig();
+
+            // Notify plugin to reload provider
+            if (plugin instanceof net.morphedit.partyrtp.PartyRTPPlugin rtpPlugin) {
+                rtpPlugin.reloadAll();
+            }
+
             Msg.sendPrefixed(plugin, sender,
                     Msg.get(plugin, "messages.admin.reloadSuccess", "&aConfiguration reloaded successfully!"));
             plugin.getLogger().info(sender.getName() + " reloaded the configuration.");
