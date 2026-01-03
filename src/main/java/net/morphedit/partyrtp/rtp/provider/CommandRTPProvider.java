@@ -14,26 +14,37 @@ public class CommandRTPProvider implements RTPProvider {
 
     @Override
     public boolean requestRtp(Player leader) {
-        // new config path
+        // New config path
         String cmd = plugin.getConfig().getString("rtp.command.execute", null);
 
-        // fallback old paths (compat)
+        // Fallback old paths (compatibility)
         if (cmd == null) cmd = plugin.getConfig().getString("rtp.command", null);
-        if (cmd == null) cmd = plugin.getConfig().getString("rtp. command", null); // harmless typo-guard
+        if (cmd == null) cmd = plugin.getConfig().getString("rtp. command", null);
         if (cmd == null) cmd = plugin.getConfig().getString("rtp.mode", null) != null
                 ? plugin.getConfig().getString("rtp.command", null)
                 : null;
 
         if (cmd == null || cmd.isBlank()) {
+            plugin.getLogger().warning("RTP command not configured! Check config.yml -> rtp.command.execute");
             return false;
         }
 
         cmd = PlaceholderUtil.apply(cmd, leader);
 
-        // remove leading "/" if user put it
+        // Remove leading "/" if user added it
         if (cmd.startsWith("/")) cmd = cmd.substring(1);
 
-        return Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+        try {
+            boolean result = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+            if (!result) {
+                plugin.getLogger().warning("RTP command dispatch failed for player " + leader.getName() +
+                        ". Command: " + cmd);
+            }
+            return result;
+        } catch (Exception e) {
+            plugin.getLogger().severe("Exception while executing RTP command: " + e.getMessage());
+            return false;
+        }
     }
 
     @Override

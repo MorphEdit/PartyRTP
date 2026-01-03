@@ -20,7 +20,7 @@ public class PartyService {
     // leader cooldown unix millis
     private final Map<UUID, Long> goCooldownUntil = new HashMap<>();
 
-    // "กำลังรอ teleport หัวหน้า" สำหรับ /go
+    // กำลังรอ teleport หัวหน้า สำหรับ /go
     private final Set<UUID> pendingGoLeaders = new HashSet<>();
     private final Map<UUID, Long> pendingGoExpireAt = new HashMap<>();
 
@@ -44,7 +44,7 @@ public class PartyService {
         parties.clear();
         parties.putAll(storage.loadParties());
 
-        // Auto-save every 2 minutes (ปรับได้)
+        // Auto-save every 2 minutes
         long autosaveTicks = 20L * 120; // 120s
         this.autosaveTask = Bukkit.getScheduler().runTaskTimer(plugin, this::saveParties, autosaveTicks, autosaveTicks);
     }
@@ -66,32 +66,38 @@ public class PartyService {
             case "disband" -> disband(p);
             case "invite" -> {
                 if (args.length < 2) {
-                    Msg.send(p, "&cUsage: /prtp invite <player>");
+                    Msg.sendPrefixed(plugin, p,
+                            Msg.get(plugin, "messages.errors.inviteUsage", "&cUsage: /prtp invite <player>"));
                     return true;
                 }
                 Player target = Bukkit.getPlayerExact(args[1]);
                 if (target == null) {
-                    Msg.send(p, "&cPlayer not found / offline.");
+                    Msg.sendPrefixed(plugin, p,
+                            Msg.get(plugin, "messages.errors.playerNotFound", "&cPlayer not found / offline."));
                     return true;
                 }
                 invite(p, target);
             }
             case "accept" -> {
                 if (args.length < 2) {
-                    Msg.send(p, "&cUsage: /prtp accept <leader>");
+                    Msg.sendPrefixed(plugin, p,
+                            Msg.get(plugin, "messages.errors.acceptUsage", "&cUsage: /prtp accept <leader>"));
                     return true;
                 }
                 Player leader = Bukkit.getPlayerExact(args[1]);
                 if (leader == null) {
-                    Msg.send(p, "&cLeader not found / offline.");
+                    Msg.sendPrefixed(plugin, p,
+                            Msg.get(plugin, "messages.errors.playerNotFound", "&cLeader not found / offline."));
                     return true;
                 }
                 accept(p, leader);
             }
             case "leave" -> leave(p);
             case "list" -> list(p);
-            case "go" -> Msg.send(p, "&7Use &d/prtp go&7 again after we add RTP flow (next step)."); // RTPService จะ override flow ผ่าน listener
-            default -> Msg.send(p, "&cUnknown subcommand. Use /prtp");
+            case "go" -> Msg.sendPrefixed(plugin, p,
+                    "&7Use &d/prtp go&7 (RTPService handles this via listener)");
+            default -> Msg.sendPrefixed(plugin, p,
+                    "&cUnknown subcommand. Use &f/prtp&c for help.");
         }
 
         return true;
@@ -99,7 +105,8 @@ public class PartyService {
 
     public void create(Player leader) {
         if (inAnyParty(leader.getUniqueId())) {
-            Msg.send(leader, "&cYou are already in a party.");
+            Msg.sendPrefixed(plugin, leader,
+                    Msg.get(plugin, "messages.errors.alreadyInParty", "&cYou are already in a party."));
             return;
         }
         parties.put(leader.getUniqueId(), new HashSet<>());
@@ -111,12 +118,16 @@ public class PartyService {
     public void disband(Player leader) {
         UUID lid = leader.getUniqueId();
         if (!parties.containsKey(lid)) {
-            Msg.send(leader, "&cYou are not a party leader.");
+            Msg.sendPrefixed(plugin, leader,
+                    Msg.get(plugin, "messages.errors.notLeader", "&cYou are not a party leader."));
             return;
         }
         for (UUID m : parties.get(lid)) {
             Player mp = Bukkit.getPlayer(m);
-            if (mp != null) Msg.send(mp, "&cParty was disbanded.");
+            if (mp != null) {
+                Msg.sendPrefixed(plugin, mp,
+                        Msg.get(plugin, "messages.info.partyDisbanded", "&cParty was disbanded."));
+            }
         }
         parties.remove(lid);
         Msg.sendPrefixed(plugin, leader,
@@ -129,18 +140,24 @@ public class PartyService {
         UUID tid = target.getUniqueId();
 
         if (!parties.containsKey(lid)) {
-            Msg.send(leader, "&cYou must /prtp create first.");
+            Msg.sendPrefixed(plugin, leader,
+                    Msg.get(plugin, "messages.errors.notLeader", "&cYou must /prtp create first."));
             return;
         }
         if (inAnyParty(tid)) {
-            Msg.send(leader, "&cThat player is already in a party.");
+            Msg.sendPrefixed(plugin, leader,
+                    Msg.get(plugin, "messages.errors.alreadyInParty", "&cThat player is already in a party."));
             return;
         }
 
         int maxSize = net.morphedit.partyrtp.util.ConfigUtil.resolveTier(plugin, leader).maxSize();
         int size = 1 + parties.get(lid).size();
         if (size >= maxSize) {
-            Msg.send(leader, "&cParty is full. Max: " + maxSize);
+            Msg.sendPrefixed(plugin, leader,
+                    Msg.fmt(
+                            Msg.get(plugin, "messages.errors.partyFull", "&cParty is full. Max: %max%"),
+                            Map.of("%max%", String.valueOf(maxSize))
+                    ));
             return;
         }
 
@@ -151,7 +168,13 @@ public class PartyService {
                         Map.of("%player%", target.getName())
                 )
         );
-        Msg.send(target, "&fYou were invited by &d" + leader.getName() + "&f. Type &a/prtp accept " + leader.getName());
+        Msg.sendPrefixed(plugin, target,
+                Msg.fmt(
+                        Msg.get(plugin, "messages.info.gotInvite",
+                                "&fYou were invited by &d%leader%&f. Type &a/prtp accept %leader%"),
+                        Map.of("%leader%", leader.getName())
+                )
+        );
     }
 
     public void accept(Player player, Player leader) {
@@ -159,16 +182,19 @@ public class PartyService {
         UUID lid = leader.getUniqueId();
 
         if (inAnyParty(tid)) {
-            Msg.send(player, "&cYou are already in a party.");
+            Msg.sendPrefixed(plugin, player,
+                    Msg.get(plugin, "messages.errors.alreadyInParty", "&cYou are already in a party."));
             return;
         }
         UUID invitedLeader = invites.get(tid);
         if (invitedLeader == null || !invitedLeader.equals(lid)) {
-            Msg.send(player, "&cNo valid invite from that leader.");
+            Msg.sendPrefixed(plugin, player,
+                    Msg.get(plugin, "messages.errors.noInvite", "&cNo valid invite from that leader."));
             return;
         }
         if (!parties.containsKey(lid)) {
-            Msg.send(player, "&cThat leader no longer has a party.");
+            Msg.sendPrefixed(plugin, player,
+                    "&cThat leader no longer has a party.");
             invites.remove(tid);
             return;
         }
@@ -183,7 +209,12 @@ public class PartyService {
                         Map.of("%leader%", leader.getName())
                 )
         );
-        Msg.send(leader, "&a" + player.getName() + " joined your party.");
+        Msg.sendPrefixed(plugin, leader,
+                Msg.fmt(
+                        Msg.get(plugin, "messages.info.memberJoined", "&a%player% joined your party."),
+                        Map.of("%player%", player.getName())
+                )
+        );
     }
 
     public void leave(Player player) {
@@ -191,20 +222,30 @@ public class PartyService {
 
         // If leader
         if (parties.containsKey(pid)) {
-            Msg.send(player, "&cYou are the leader. Use /prtp disband.");
+            Msg.sendPrefixed(plugin, player,
+                    Msg.get(plugin, "messages.errors.leaderDisbandHint",
+                            "&cYou are the leader. Use &f/prtp disband&c."));
             return;
         }
 
         UUID leader = getLeaderOf(pid);
         if (leader == null) {
-            Msg.send(player, "&cYou are not in a party.");
+            Msg.sendPrefixed(plugin, player,
+                    Msg.get(plugin, "messages.errors.notInParty", "&cYou are not in a party."));
             return;
         }
 
         parties.get(leader).remove(pid);
 
         Player lp = Bukkit.getPlayer(leader);
-        if (lp != null) Msg.send(lp, "&c" + player.getName() + " left the party.");
+        if (lp != null) {
+            Msg.sendPrefixed(plugin, lp,
+                    Msg.fmt(
+                            Msg.get(plugin, "messages.info.memberLeft", "&c%player% left the party."),
+                            Map.of("%player%", player.getName())
+                    )
+            );
+        }
         Msg.sendPrefixed(plugin, player,
                 Msg.get(plugin, "messages.info.left",
                         "&aYou left the party."));
@@ -215,12 +256,14 @@ public class PartyService {
         UUID leader = parties.containsKey(pid) ? pid : getLeaderOf(pid);
 
         if (leader == null) {
-            Msg.send(player, "&cYou are not in a party.");
+            Msg.sendPrefixed(plugin, player,
+                    Msg.get(plugin, "messages.errors.notInParty", "&cYou are not in a party."));
             return;
         }
 
         Player lp = Bukkit.getPlayer(leader);
-        Msg.send(player, "&fLeader: &d" + (lp != null ? lp.getName() : leader));
+        Msg.sendPrefixed(plugin, player,
+                "&fLeader: &d" + (lp != null ? lp.getName() : leader));
 
         if (!parties.containsKey(leader)) return;
 

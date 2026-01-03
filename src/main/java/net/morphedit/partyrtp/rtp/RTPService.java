@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import net.morphedit.partyrtp.rtp.provider.RTPProvider;
 import net.morphedit.partyrtp.rtp.provider.RTPProviderFactory;
-import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
@@ -26,24 +25,39 @@ public class RTPService {
     public void handleGo(Player leader) {
         UUID lid = leader.getUniqueId();
 
+        // Check world validity
+        if (leader.getWorld() == null) {
+            Msg.sendPrefixed(plugin, leader,
+                    Msg.get(plugin, "messages.errors.worldInvalid", "&cCannot determine your world."));
+            return;
+        }
+
         String worldName = leader.getWorld().getName();
         if (!net.morphedit.partyrtp.util.ConfigUtil.isWorldAllowed(plugin, worldName)) {
-            Msg.sendPrefixed(plugin, leader, "&cPartyRTP is disabled in this world: &f" + worldName);
+            Msg.sendPrefixed(plugin, leader,
+                    Msg.fmt(
+                            Msg.get(plugin, "messages.errors.worldDisabled", "&cPartyRTP is disabled in this world: &f%world%"),
+                            java.util.Map.of("%world%", worldName)
+                    ));
             return;
         }
 
         if (!party.isLeader(lid)) {
-            Msg.send(leader, "&cYou must be a party leader.");
+            Msg.sendPrefixed(plugin, leader,
+                    Msg.get(plugin, "messages.errors.notLeader", "&cYou must be a party leader."));
             return;
         }
 
         if (party.onCooldown(lid)) {
-            Msg.send(leader, "&cCooldown: &f" + party.cooldownLeftSeconds(lid) + "s");
+            Msg.sendPrefixed(plugin, leader,
+                    Msg.fmt(
+                            Msg.get(plugin, "messages.errors.cooldown", "&cCooldown: &f%seconds%s"),
+                            java.util.Map.of("%seconds%", String.valueOf(party.cooldownLeftSeconds(lid)))
+                    ));
             return;
         }
 
         var tier = net.morphedit.partyrtp.util.ConfigUtil.resolveTier(plugin, leader);
-        // near check (ของเดิม)
         boolean requireNear = plugin.getConfig().getBoolean("party.requireNear", true);
         int radius = tier.nearRadius();
 
@@ -55,19 +69,30 @@ public class RTPService {
 
             if (mp == null) {
                 if (membersMustBeOnline) {
-                    Msg.sendPrefixed(plugin, leader, "&cAll members must be online.");
+                    Msg.sendPrefixed(plugin, leader,
+                            Msg.get(plugin, "messages.errors.membersOffline", "&cAll members must be online."));
                     return;
                 }
-                continue; // allow offline => skip
+                continue;
             }
 
             if (requireSameWorld && !mp.getWorld().equals(leader.getWorld())) {
-                Msg.sendPrefixed(plugin, leader, "&cAll members must be in same world.");
+                Msg.sendPrefixed(plugin, leader,
+                        Msg.fmt(
+                                Msg.get(plugin, "messages.errors.worldMismatch", "&cAll members must be in same world."),
+                                java.util.Map.of()
+                        ));
                 return;
             }
 
-            if (requireNear && mp.getLocation().distance(leader.getLocation()) > radius) {
-                Msg.sendPrefixed(plugin, leader, "&cMember too far: &f" + mp.getName());
+            // Use distanceSquared for better performance
+            double distanceSquared = mp.getLocation().distanceSquared(leader.getLocation());
+            if (requireNear && distanceSquared > radius * radius) {
+                Msg.sendPrefixed(plugin, leader,
+                        Msg.fmt(
+                                Msg.get(plugin, "messages.errors.memberFar", "&cMember too far: &f%player%"),
+                                java.util.Map.of("%player%", mp.getName(), "%radius%", String.valueOf(radius))
+                        ));
                 return;
             }
         }
@@ -75,7 +100,7 @@ public class RTPService {
         int cd = tier.cooldownSeconds();
         int timeoutSec = plugin.getConfig().getInt("go.leaderTeleportTimeoutSeconds", 15);
 
-        // start hardened GO
+        // Start hardened GO
         UUID token = party.startGo(
                 lid,
                 leader.getLocation().clone(),
@@ -96,7 +121,7 @@ public class RTPService {
             return;
         }
 
-        // timeout fail message
+        // Timeout fail message
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (party.isGoValid(lid, token)) {
                 party.clearGo(lid);
@@ -120,12 +145,17 @@ public class RTPService {
 
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (!leader.isOnline() || !mp.isOnline()) return;
-                // ปลอดภัย: ย้ายโลกตามหัวหน้า
-                mp.teleportAsync(leader.getLocation());
-                Msg.send(mp, "&aParty RTP: teleported to leader.");
+
+                // Additional safety check: verify leader hasn't moved significantly
+                if (mp.getWorld().equals(leader.getWorld())) {
+                    mp.teleportAsync(leader.getLocation());
+                    Msg.sendPrefixed(plugin, mp,
+                            Msg.get(plugin, "messages.info.pulledMember", "&aParty RTP: teleported to leader."));
+                }
             }, wait);
         }
 
-        Msg.send(leader, "&aMembers pulled to your location.");
+        Msg.sendPrefixed(plugin, leader,
+                Msg.get(plugin, "messages.info.pulled", "&aMembers pulled to your location."));
     }
 }

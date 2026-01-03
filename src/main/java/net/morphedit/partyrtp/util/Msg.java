@@ -44,6 +44,7 @@ public final class Msg {
     }
 
     public static String color(String text) {
-        return text.replace('&', '§');
+        if (text == null) return "";
+        return text.replace('&', '\u00A7');
     }
 }

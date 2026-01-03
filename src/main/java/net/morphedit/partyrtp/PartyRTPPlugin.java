@@ -5,9 +5,12 @@ import net.morphedit.partyrtp.rtp.RTPService;
 import net.morphedit.partyrtp.teleport.LeaderTeleportListener;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public final class PartyRTPPlugin extends JavaPlugin {
+public final class PartyRTPPlugin extends JavaPlugin implements Listener {
 
     private PartyService partyService;
     private RTPService rtpService;
@@ -24,6 +27,9 @@ public final class PartyRTPPlugin extends JavaPlugin {
                 this
         );
 
+        // Register self for PlayerQuitEvent
+        getServer().getPluginManager().registerEvents(this, this);
+
         getLogger().info("PartyRTP enabled.");
     }
 
@@ -34,6 +40,15 @@ public final class PartyRTPPlugin extends JavaPlugin {
             partyService.stopAutosave();
         }
         getLogger().info("PartyRTP disabled.");
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        if (partyService != null) {
+            java.util.UUID uuid = event.getPlayer().getUniqueId();
+            partyService.clearGo(uuid);
+            partyService.clearPendingGo(uuid);
+        }
     }
 
     @Override

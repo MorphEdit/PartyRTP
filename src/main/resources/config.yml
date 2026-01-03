@@ -34,7 +34,7 @@ worlds:
     - world_nether
     - world_the_end
 
-  # ถ้า true: ตอนเช็คสมาชิกต้องอยู่โลกเดียวกับหัวหน้า (ของเดิมมีแล้ว)
+  # ถ้า true: ตอนเช็คสมาชิกต้องอยู่โลกเดียวกับหัวหน้า
   requireSameWorldAsLeader: true
 
 limits:
@@ -82,6 +82,9 @@ messages:
     cooldown: "&cCooldown: &f%seconds%s"
     memberFar: "&cAll members must be within &f%radius%&c blocks. Far: &f%player%"
     worldMismatch: "&cAll members must be in the same world as leader."
+    worldDisabled: "&cPartyRTP is disabled in this world: &f%world%"
+    worldInvalid: "&cCannot determine your world."
+    membersOffline: "&cAll members must be online."
     rtpConfigBad: "&cRTP request failed. Check config.yml (rtp provider/command)."
     rtpTimeout: "&cRTP failed or timed out."
 
